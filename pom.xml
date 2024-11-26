@@ -14,11 +14,12 @@
 	<artifactId>euphoria-bot</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>euphoria-bot</name>
-	<description>euphoria-bot</description>
+	<description>Euphoria Bot, da gente, feito pra gente</description>
 
 	<properties>
 		<java.version>21</java.version>
 		<jda.version>5.0.0</jda.version>
+		<dotenv-java.version>3.0.0</dotenv-java.version>
 	</properties>
 
 	<dependencies>
@@ -34,9 +35,20 @@
 		</dependency>
 
 		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+		</dependency>
+
+		<dependency>
 			<groupId>net.dv8tion</groupId>
 			<artifactId>JDA</artifactId>
 			<version>${jda.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>io.github.cdimascio</groupId>
+			<artifactId>dotenv-java</artifactId>
+			<version>${dotenv-java.version}</version>
 		</dependency>
 	</dependencies>
 
