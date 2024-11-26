@@ -1,4 +1,4 @@
-package br.com.grupoirrah.euphoriabot.listener;
+package br.com.grupoirrah.euphoriabot.entrypoint.listener;
 
 import br.com.grupoirrah.euphoriabot.core.usecase.interactor.CreateRoleEventUseCase;
 import br.com.grupoirrah.euphoriabot.core.util.LogUtil;

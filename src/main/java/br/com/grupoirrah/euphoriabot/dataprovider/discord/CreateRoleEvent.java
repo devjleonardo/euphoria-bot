@@ -1,5 +1,5 @@
 
-package br.com.grupoirrah.euphoriabot.discord;
+package br.com.grupoirrah.euphoriabot.dataprovider.discord;
 
 import br.com.grupoirrah.euphoriabot.core.gateway.CreateRoleEventGateway;
 import br.com.grupoirrah.euphoriabot.core.util.LogUtil;

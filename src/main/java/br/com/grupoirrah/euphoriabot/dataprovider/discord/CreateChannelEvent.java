@@ -1,4 +1,4 @@
-package br.com.grupoirrah.euphoriabot.discord;
+package br.com.grupoirrah.euphoriabot.dataprovider.discord;
 
 import br.com.grupoirrah.euphoriabot.core.gateway.CreateChannelEventGateway;
 import net.dv8tion.jda.api.EmbedBuilder;
