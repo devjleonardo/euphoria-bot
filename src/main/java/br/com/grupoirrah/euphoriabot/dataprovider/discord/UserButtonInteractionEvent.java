@@ -21,8 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class UserButtonInteractionEvent implements UserButtonInteractionEventGateway {
 
-    @Getter
-    private static final ConcurrentHashMap<String, InteractionHook> interactionCache = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, InteractionHook> interactionCache = new ConcurrentHashMap<>();
 
     @Override
     public void execute(ButtonInteractionEvent event) {
@@ -62,6 +61,11 @@ public class UserButtonInteractionEvent implements UserButtonInteractionEventGat
                     .setEphemeral(true)
                     .queue();
         }
+    }
+
+    @Override
+    public ConcurrentHashMap<String, InteractionHook> getInteractionCache() {
+        return interactionCache;
     }
 
 }

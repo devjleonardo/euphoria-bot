@@ -1,21 +1,22 @@
 package br.com.grupoirrah.euphoriabot.dataprovider.discord;
 
 import br.com.grupoirrah.euphoriabot.core.domain.exception.AuthProcessingException;
-import br.com.grupoirrah.euphoriabot.core.gateway.TokenGateway;
-import br.com.grupoirrah.euphoriabot.core.usecase.boundary.output.ParsedAuthStateOutput;
+import br.com.grupoirrah.euphoriabot.core.gateway.TokenProviderGateway;
+import br.com.grupoirrah.euphoriabot.core.usecase.boundary.output.AuthStateOutput;
 import br.com.grupoirrah.euphoriabot.core.util.LogUtil;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 @Slf4j
-@Service
+@Component
 @RequiredArgsConstructor
-public class TokenService implements TokenGateway {
+public class TokenProvider implements TokenProviderGateway {
 
     private final WebClient webClient = WebClient.create("https://discord.com/api");
     private final ObjectMapper objectMapper;
@@ -27,8 +28,8 @@ public class TokenService implements TokenGateway {
     private String clientSecret;
 
     @Override
-    public String retrieveAccessToken(String code) {
-        String response = webClient.post()
+    public Mono<String> retrieveAccessToken(String code) {
+        return webClient.post()
             .uri("/oauth2/token")
             .header("Content-Type", "application/x-www-form-urlencoded")
             .bodyValue("client_id=" + clientId +
@@ -38,14 +39,12 @@ public class TokenService implements TokenGateway {
                 "&redirect_uri=http://localhost:8080/oauth/callback")
             .retrieve()
             .bodyToMono(String.class)
-            .block();
-        return extractAccessToken(response);
+            .map(this::extractAccessToken);
     }
-
     @Override
-    public ParsedAuthStateOutput parseState(String state) throws Exception {
+    public AuthStateOutput parseState(String state) throws Exception {
         JsonNode node = objectMapper.readTree(state);
-        return new ParsedAuthStateOutput(
+        return new AuthStateOutput(
             node.get("guildId").asText(),
             node.get("interactionId").asText()
         );

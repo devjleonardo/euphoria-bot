@@ -1,126 +1,177 @@
 package br.com.grupoirrah.euphoriabot.core.usecase.interactor;
 
-import br.com.grupoirrah.euphoria.core.util.EmailUtil;
-import br.com.grupoirrah.euphoria.domain.model.OAuthCallbackData;
-import br.com.grupoirrah.euphoria.domain.model.UserInfo;
-import br.com.grupoirrah.euphoria.listener.ButtonInteractionListener;
+import br.com.grupoirrah.euphoriabot.core.gateway.*;
+import br.com.grupoirrah.euphoriabot.core.usecase.boundary.output.AuthStateOutput;
+import br.com.grupoirrah.euphoriabot.core.usecase.boundary.output.UserProviderOutput;
+import br.com.grupoirrah.euphoriabot.core.util.LogUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.interactions.InteractionHook;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
 
+import java.awt.*;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthUseCase {
 
-    private static final ConcurrentHashMap<String, InteractionHook> interactionCache =
-        ButtonInteractionListener.getInteractionCache();
-
-    private final TokenService tokenService;
-    private final UserService userService;
-    private final GuildService guildService;
-    private final EmailValidationService emailValidationService;
+    private final UserButtonInteractionEventGateway userButtonInteractionEventGateway;
+    private final TokenProviderGateway tokenProviderGateway;
+    private final UserProviderGateway userProviderGateway;
+    private final GuildProviderGateway guildProviderGateway;
+    private final MailboxValidationProviderGateway mailboxValidationProviderGateway;
     private final JDA jda;
 
-    public Optional<String> execute(String code, String state) throws Exception {
+    public Mono<Optional<String>> execute(String code, String state) throws Exception {
         String decodedState = URLDecoder.decode(state, StandardCharsets.UTF_8);
-        OAuthCallbackData callbackData = tokenService.parseState(decodedState);
+        AuthStateOutput authStateOutput = tokenProviderGateway.parseState(decodedState);
 
-        InteractionHook hook = interactionCache.remove(callbackData.interactionId());
+        InteractionHook hook = userButtonInteractionEventGateway.getInteractionCache()
+            .remove(authStateOutput.interactionId());
+
         if (hook == null) {
-            return Optional.of("❌ Interação não encontrada.");
+            return Mono.just(Optional.of("❌ Interação não encontrada."));
         }
 
-        String accessToken = tokenService.retrieveAccessToken(code);
-        UserInfo userInfo = userService.fetchUserInfo(accessToken);
+        return tokenProviderGateway.retrieveAccessToken(code)
+            .flatMap(accessToken -> userProviderGateway.fetchUserProvider(accessToken)
+                .flatMap(userInfo -> processUserInfo(authStateOutput, userInfo, hook))
+            );
+    }
 
-        if (!EmailUtil.isEmailFromGrupoIrrahDomain(userInfo.email())) {
-            hook.sendMessage("❌ E-mail inválido! Utilize um e-mail com o domínio @grupoirrah.com.")
-                .setEphemeral(true)
-                .queue();
-            return Optional.empty();
-        }
+    private Mono<Optional<String>> processUserInfo(AuthStateOutput authStateOutput,
+                                                   UserProviderOutput userInfo,
+                                                   InteractionHook hook) {
+        Guild guild = guildProviderGateway.getGuildById(jda, authStateOutput.guildId());
 
-        Guild guild = guildService.getGuildById(jda, callbackData.guildId());
         if (guild == null) {
             hook.sendMessage("❌ Servidor não encontrado.")
                 .setEphemeral(true)
                 .queue();
-            return Optional.empty();
+            return Mono.just(Optional.empty());
         }
 
-        Member member = guildService.getMemberById(guild, userInfo.id());
+        Member member = guildProviderGateway.getMemberById(guild, userInfo.id());
         if (member == null) {
             hook.sendMessage("❌ Membro não encontrado no servidor.")
                 .setEphemeral(true)
                 .queue();
-            return Optional.empty();
+            return Mono.just(Optional.empty());
         }
 
+        return validateEmailAndAssignRole(guild, member, userInfo, hook);
+    }
+
+    private Mono<Optional<String>> validateEmailAndAssignRole(Guild guild,
+                                                              Member member,
+                                                              UserProviderOutput userInfo,
+                                                              InteractionHook hook) {
         String email = userInfo.email();
 
         if (email.endsWith("@grupoirrah.com")) {
-            boolean isValid = emailValidationService.validateEmail(email);
-            if (isValid) {
-                guildService.assignRoleToMember(guild, member, "✅ ┇ Membro");
-                hook.sendMessage("✅ Validação de e-mail concluída e cargo atribuído com sucesso! 🎉")
-                        .setEphemeral(true)
-                        .queue();
-            } else {
-                sendFriendlyDm(member, "Olá! Detectamos que o e-mail informado não pertence ao domínio do " +
-                        "Grupo Irrah. 😕 Por favor, utilize um e-mail válido com o domínio @grupoirrah.com. " +
-                        "Se tiver dúvidas, estamos aqui para ajudar!");
-                kickMember(guild, member, hook);
-                hook.sendMessage("❌ O e-mail informado não pertence ao domínio @grupoirrah.com. Caso tenha dúvidas " +
-                                "ou precise de suporte, entre em contato conosco!")
-                        .setEphemeral(true)
-                        .queue();
-            }
-        } else if (email.endsWith("@gmail.com")) {
-            sendFriendlyDm(member, "❌ Não conseguimos validar seu e-mail Gmail. Caso tenha dúvidas, entre em contato conosco.");
-            kickMember(guild, member, hook);
-            hook.sendMessage("❌ Apenas e-mails com o domínio @grupoirrah.com são permitidos.")
-                    .setEphemeral(true)
-                    .queue();
+            return mailboxValidationProviderGateway.validateEmail(email)
+                .flatMap(isValid -> {
+                    if (isValid) {
+                        guildProviderGateway.assignRoleToMember(guild, member, "✅ ┇ Membro");
+
+                        String welcomeChannelName = "✨・bem-vindo";
+                        String welcomeChannelId = guild.getTextChannelsByName(welcomeChannelName, true)
+                            .stream()
+                            .findFirst()
+                            .map(channel -> channel.getId())
+                            .orElse(null);
+
+                        if (welcomeChannelId == null) {
+                            LogUtil.logError(log, "❌ Canal com o nome '{}' não encontrado no " +
+                                "servidor '{}'.", welcomeChannelName, guild.getName());
+                            return Mono.just(Optional.of("❌ O canal de boas-vindas não foi encontrado. " +
+                                "Entre em contato com um administrador."));
+                        }
+
+                        String intermediateMessage = """
+                                🌟 **Tudo pronto!**
+                                Sua conta foi ativada com sucesso, você já pode começar a explorar nosso servidor.
+                                
+                                👉 **Próximo passo:**
+                                Clique no botão abaixo para acessar o canal de boas-vindas e conhecer tudo o que 
+                                preparamos para você!
+                                
+                                _Estamos animados em ter você conosco! 😊_
+                                """;
+
+                        Button welcomeButton = Button.link(
+                            "https://discord.com/channels/" + guild.getId() + "/" + welcomeChannelId,
+                            "Acesse o canal de boas-vindas 🎉"
+                        );
+
+                        hook.sendMessage(intermediateMessage)
+                            .addActionRow(welcomeButton)
+                            .setEphemeral(true)
+                            .queue();
+
+                        return Mono.just(Optional.empty());
+                    } else {
+                        sendFriendlyDm(member, "Olá! Detectamos que o e-mail informado não pertence " +
+                            "ao domínio do **Grupo Irrah**", hook, guild);
+                        return Mono.just(Optional.empty());
+                    }
+                });
         } else {
-            hook.sendMessage("❌ Apenas e-mails com o domínio @grupoirrah.com são permitidos.")
-                    .setEphemeral(true)
-                    .queue();
-            return Optional.empty();
+            sendFriendlyDm(member, "❌ Apenas e-mails com o domínio **@grupoirrah.com** são permitidos", hook,
+                guild);
+            return Mono.just(Optional.empty());
+        }
+    }
+
+    private void sendFriendlyDm(Member member, String message, InteractionHook hook, Guild guild) {
+        if (member == null) {
+            LogUtil.logWarn(log, "❌ Membro ou usuário é nulo. Não foi possível enviar DM.");
+            return;
+        } else {
+            member.getUser();
         }
 
-        return Optional.empty();
-    }
+        String guildName = guild.getName();
+        String fullMessage = message + " no servidor **" + guildName + "**.";
 
-    private void sendFriendlyDm(Member member, String message) {
-        member.getUser().openPrivateChannel().queue(channel -> {
-            channel.sendMessage(message).queue();
-        }, throwable -> {
-            System.err.println("❌ Não foi possível enviar DM para o usuário: " + member.getUser().getId());
-        });
-    }
-
-    private static void kickMember(Guild guild, Member member, InteractionHook hook) {
-        guild.kick(member).queue(
+        member.getUser().openPrivateChannel().queue(
+            channel -> channel.sendMessage(fullMessage).queue(
                 success -> {
-                    hook.sendMessage("❌ E-mail inválido! Não conseguimos validar a existência de sua conta Gmail.")
-                            .setEphemeral(true)
-                            .queue();
+                    LogUtil.logInfo(log, "✅ Mensagem enviada com sucesso para o usuário: {}",
+                        member.getUser().getId());
+
+                    kickMember(guild, member);
                 },
                 error -> {
-                    System.err.println("❌ Erro ao tentar remover o membro: " + error.getMessage());
-                    hook.sendMessage("⚠️ Não foi possível remover o membro do servidor automaticamente.")
-                            .setEphemeral(true)
-                            .queue();
+                    if (error.getMessage().contains("50007")) {
+                        LogUtil.logError(log, "❌ Não foi possível enviar DM para o usuário: {}. " +
+                            "Motivo: Usuário desativou mensagens diretas.", member.getUser().getId());
+
+                        hook.sendMessage(fullMessage).setEphemeral(true).queue();
+                    } else {
+                        LogUtil.logError(log, "❌ Falha ao enviar a mensagem para o usuário: {}. " +
+                            "Erro: {}", member.getUser().getId(), error.getMessage());
+                    }
                 }
+            ),
+            error -> LogUtil.logError(log, "❌ Não foi possível abrir o canal privado para " +
+                "o usuário: {}. Motivo: {}", member.getUser().getId(), error.getMessage())
         );
+    }
+
+    private static void kickMember(Guild guild, Member member) {
+        guild.kick(member).queue();
     }
 
 }

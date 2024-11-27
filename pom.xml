@@ -20,6 +20,7 @@
 		<java.version>21</java.version>
 		<jda.version>5.0.0</jda.version>
 		<dotenv-java.version>3.0.0</dotenv-java.version>
+		<mailboxvalidator-java.version>2.1.0</mailboxvalidator-java.version>
 	</properties>
 
 	<dependencies>
@@ -54,6 +55,12 @@
 			<groupId>io.github.cdimascio</groupId>
 			<artifactId>dotenv-java</artifactId>
 			<version>${dotenv-java.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.mailboxvalidator</groupId>
+			<artifactId>mailboxvalidator-java</artifactId>
+			<version>${mailboxvalidator-java.version}</version>
 		</dependency>
 	</dependencies>
 

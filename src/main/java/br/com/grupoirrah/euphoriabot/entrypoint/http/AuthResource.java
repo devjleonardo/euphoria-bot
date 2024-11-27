@@ -1,8 +1,7 @@
 package br.com.grupoirrah.euphoriabot.entrypoint.http;
 
-import br.com.grupoirrah.euphoria.core.util.LogUtil;
-import br.com.grupoirrah.euphoria.domain.service.OAuthService;
 import br.com.grupoirrah.euphoriabot.core.usecase.interactor.AuthUseCase;
+import br.com.grupoirrah.euphoriabot.core.util.LogUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -10,8 +9,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.Optional;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 @RestController
@@ -19,24 +17,21 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class AuthResource {
 
-    private final AuthUseCase oAuthService;
+    private final AuthUseCase authUseCase;
 
     @GetMapping("/callback")
-    public ResponseEntity<String> handleOAuthCallback(@RequestParam String code, @RequestParam String state) {
-        try {
-            Optional<String> errorMessage = oAuthService.handleOAuthCallback(code, state);
-
-            if (errorMessage.isPresent()) {
-                return createErrorResponse(400, errorMessage.get(), "Erro no callback OAuth: " +
-                    errorMessage.get());
-            }
-
-            return ResponseEntity.status(200)
-                .body("<script>window.close();</script>");
-        } catch (Exception e) {
-            return createErrorResponse(500, "Ocorreu um erro inesperado.",
-                "Erro ao processar o callback OAuth.", e);
-        }
+    public Mono<ResponseEntity<String>> handleOAuthCallback(@RequestParam String code,
+                                                            @RequestParam String state) throws Exception {
+        return authUseCase.execute(code, state)
+            .map(errorMessage -> errorMessage
+                .map(msg -> createErrorResponse(400, msg, "Erro no callback OAuth: " + msg))
+                .orElse(ResponseEntity.status(200).body("<script>window.close();</script>"))
+            )
+            .onErrorResume(e -> {
+                Exception exception = e instanceof Exception ? (Exception) e : new Exception(e);
+                return Mono.just(createErrorResponse(500, "Ocorreu um erro inesperado.",
+                    "Erro ao processar o callback OAuth.", exception));
+            });
     }
 
     private ResponseEntity<String> createErrorResponse(int status, String message, String logMessage) {
