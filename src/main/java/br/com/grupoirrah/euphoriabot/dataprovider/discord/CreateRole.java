@@ -1,7 +1,7 @@
 
 package br.com.grupoirrah.euphoriabot.dataprovider.discord;
 
-import br.com.grupoirrah.euphoriabot.core.gateway.CreateRoleEventGateway;
+import br.com.grupoirrah.euphoriabot.core.gateway.CreateRoleGateway;
 import br.com.grupoirrah.euphoriabot.core.util.LogUtil;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.Permission;
@@ -15,7 +15,7 @@ import java.util.function.Consumer;
 
 @Slf4j
 @Component
-public class CreateRoleEvent implements CreateRoleEventGateway {
+public class CreateRole implements CreateRoleGateway {
 
     @Override
     public void createBotRole(GuildJoinEvent event) {

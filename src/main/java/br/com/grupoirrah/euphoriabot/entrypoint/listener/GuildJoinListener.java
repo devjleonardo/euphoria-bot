@@ -1,6 +1,6 @@
 package br.com.grupoirrah.euphoriabot.entrypoint.listener;
 
-import br.com.grupoirrah.euphoriabot.core.usecase.interactor.CreateRoleEventUseCase;
+import br.com.grupoirrah.euphoriabot.core.usecase.interactor.CreateRoleUseCase;
 import br.com.grupoirrah.euphoriabot.core.util.LogUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,13 +13,13 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class GuildJoinListener extends ListenerAdapter {
 
-    private final CreateRoleEventUseCase createRoleEventUseCase;
+    private final CreateRoleUseCase createRoleUseCase;
 
     @Override
     public void onGuildJoin(GuildJoinEvent event) {
         LogUtil.logInfo(log, "Recebido evento de entrada em um servidor: {}", event.getGuild().getName());
 
-        createRoleEventUseCase.execute(event);
+        createRoleUseCase.execute(event);
 
         LogUtil.logInfo(log, "Evento de entrada no servidor '{}' processado com sucesso!",
                 event.getGuild().getName());

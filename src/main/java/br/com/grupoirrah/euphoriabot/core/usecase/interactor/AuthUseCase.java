@@ -6,17 +6,14 @@ import br.com.grupoirrah.euphoriabot.core.usecase.boundary.output.UserProviderOu
 import br.com.grupoirrah.euphoriabot.core.util.LogUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
-import java.awt.*;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
@@ -26,7 +23,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class AuthUseCase {
 
-    private final UserButtonInteractionEventGateway userButtonInteractionEventGateway;
+    private final UserButtonInteractionGateway userButtonInteractionGateway;
     private final TokenProviderGateway tokenProviderGateway;
     private final UserProviderGateway userProviderGateway;
     private final GuildProviderGateway guildProviderGateway;
@@ -37,7 +34,7 @@ public class AuthUseCase {
         String decodedState = URLDecoder.decode(state, StandardCharsets.UTF_8);
         AuthStateOutput authStateOutput = tokenProviderGateway.parseState(decodedState);
 
-        InteractionHook hook = userButtonInteractionEventGateway.getInteractionCache()
+        InteractionHook hook = userButtonInteractionGateway.getInteractionCache()
             .remove(authStateOutput.interactionId());
 
         if (hook == null) {

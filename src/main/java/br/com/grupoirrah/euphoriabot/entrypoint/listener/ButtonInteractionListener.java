@@ -1,6 +1,6 @@
 package br.com.grupoirrah.euphoriabot.entrypoint.listener;
 
-import br.com.grupoirrah.euphoriabot.core.usecase.interactor.UserButtonInteractionEventUseCase;
+import br.com.grupoirrah.euphoriabot.core.usecase.interactor.UserButtonInteractionUseCase;
 import br.com.grupoirrah.euphoriabot.core.util.LogUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,14 +13,14 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class ButtonInteractionListener extends ListenerAdapter {
 
-    private final UserButtonInteractionEventUseCase userButtonInteractionEventUseCase;
+    private final UserButtonInteractionUseCase userButtonInteractionUseCase;
 
     @Override
     public void onButtonInteraction(ButtonInteractionEvent event) {
         LogUtil.logInfo(log, "Recebido evento de interação com botão: ID do botão '{}', usuário '{}'",
                 event.getButton().getId(), event.getUser().getAsTag());
 
-        userButtonInteractionEventUseCase.execute(event);
+        userButtonInteractionUseCase.execute(event);
 
         LogUtil.logInfo(log, "Interação com botão: ID do botão '{}', usuário '{}', processado com " +
                 "sucesso!", event.getButton().getId(), event.getUser().getAsTag());

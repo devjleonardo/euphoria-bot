@@ -1,6 +1,6 @@
 package br.com.grupoirrah.euphoriabot.dataprovider.discord;
 
-import br.com.grupoirrah.euphoriabot.core.gateway.CreateChannelEventGateway;
+import br.com.grupoirrah.euphoriabot.core.gateway.CreateChannelGateway;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Role;
@@ -15,7 +15,7 @@ import java.awt.*;
 import java.util.List;
 
 @Component
-public class CreateChannelEvent implements CreateChannelEventGateway {
+public class CreateChannel implements CreateChannelGateway {
 
     @Override
     public void createActivationChannel(GuildJoinEvent event, Role memberRole) {

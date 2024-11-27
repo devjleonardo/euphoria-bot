@@ -1,9 +1,8 @@
 package br.com.grupoirrah.euphoriabot.dataprovider.discord;
 
-import br.com.grupoirrah.euphoriabot.core.gateway.UserButtonInteractionEventGateway;
+import br.com.grupoirrah.euphoriabot.core.gateway.UserButtonInteractionGateway;
 import br.com.grupoirrah.euphoriabot.core.util.LogUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
@@ -19,7 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Component
-public class UserButtonInteractionEvent implements UserButtonInteractionEventGateway {
+public class UserButtonInteraction implements UserButtonInteractionGateway {
 
     private final ConcurrentHashMap<String, InteractionHook> interactionCache = new ConcurrentHashMap<>();
 
