@@ -8,6 +8,7 @@ import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.net.URLEncoder;
@@ -21,6 +22,9 @@ import java.util.concurrent.ConcurrentHashMap;
 public class UserButtonInteraction implements UserButtonInteractionGateway {
 
     private final ConcurrentHashMap<String, InteractionHook> interactionCache = new ConcurrentHashMap<>();
+
+    @Value("${discord.redirect.uri}")
+    private String redirectUri;
 
     @Override
     public void execute(ButtonInteractionEvent event) {
@@ -44,7 +48,7 @@ public class UserButtonInteraction implements UserButtonInteractionGateway {
 
             String redirectUrl = "https://discord.com/oauth2/authorize"
                     + "?client_id=1308575817176973363"
-                    + "&redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Foauth%2Fcallback"
+                    + "&redirect_uri=" + URLEncoder.encode(redirectUri, StandardCharsets.UTF_8)
                     + "&response_type=code"
                     + "&scope=email%20identify"
                     + "&state=" + URLEncoder.encode(stateJson, StandardCharsets.UTF_8);
