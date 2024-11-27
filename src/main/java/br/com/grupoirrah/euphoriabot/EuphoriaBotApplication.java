@@ -12,6 +12,12 @@ public class EuphoriaBotApplication {
 		System.setProperty("DISCORD_BOT_TOKEN", dotenv.get("DISCORD_BOT_TOKEN"));
 		System.setProperty("DISCORD_CLIENT_ID", dotenv.get("DISCORD_CLIENT_ID"));
 		System.setProperty("DISCORD_CLIENT_SECRET", dotenv.get("DISCORD_CLIENT_SECRET"));
+
+		String discordRedirectUri = dotenv.get("DISCORD_REDIRECT_URI");
+		if (discordRedirectUri != null) {
+			System.setProperty("DISCORD_REDIRECT_URI", discordRedirectUri);
+		}
+
 		System.setProperty("MAILBOXVALIDATOR_API_KEY", dotenv.get("MAILBOXVALIDATOR_API_KEY"));
 
 		SpringApplication.run(EuphoriaBotApplication.class, args);

@@ -27,6 +27,9 @@ public class TokenProvider implements TokenProviderGateway {
     @Value("${discord.client.secret}")
     private String clientSecret;
 
+    @Value("${discord.redirect.uri}")
+    private String redirectUri;
+
     @Override
     public Mono<String> retrieveAccessToken(String code) {
         return webClient.post()
@@ -36,7 +39,7 @@ public class TokenProvider implements TokenProviderGateway {
                 "&client_secret=" + clientSecret +
                 "&grant_type=authorization_code" +
                 "&code=" + code +
-                "&redirect_uri=http://localhost:8080/oauth/callback")
+                "&redirect_uri=" + redirectUri)
             .retrieve()
             .bodyToMono(String.class)
             .map(this::extractAccessToken);
